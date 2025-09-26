@@ -1,6 +1,8 @@
 # GitHub Secrets Configuration Guide
 
-This guide explains how to configure GitHub secrets for dynamic Docker labels and metadata.
+⚠️ **NOTE**: GitHub Actions automated builds are NOT supported for this project due to the 3.6GB PyTorch ROCm package. These secrets are only useful if you modify the project to exclude PyTorch installation or use a pre-built base image.
+
+This guide explains how to configure GitHub secrets for dynamic Docker labels and metadata (for projects that CAN be built in CI/CD).
 
 ## 🔐 Required Secrets
 

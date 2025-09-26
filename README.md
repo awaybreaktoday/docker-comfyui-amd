@@ -2,15 +2,17 @@
 
 **ROCm 6.4.4** - Latest version with full consumer GPU support for RX 7000/9000 series
 
-A lightweight Docker container for running ComfyUI with AMD ROCm support, leveraging your existing host ROCm installation. **Built with Docker Build Cloud for faster, more efficient builds.**
+A lightweight Docker container for running ComfyUI with AMD ROCm support, leveraging your existing host ROCm installation.
+
+⚠️ **IMPORTANT**: Due to the large PyTorch ROCm package (3.6GB), this image MUST be built locally. Cloud build services (GitHub Actions, Docker Hub) will timeout or fail.
 
 ## 🎯 Features
 
 - **🎮 Consumer GPU Support**: Full official support for RX 7000/9000 series
 - **🪟 Cross-Platform**: Windows and Linux compatibility  
 - **⚡ Latest Stack**: Ubuntu 24.04 LTS + PyTorch + ROCm 6.4.4
-- **🚀 Docker Build Cloud**: Fast, reliable automated builds
-- **🏗️ Multi-Platform**: Native AMD64 and ARM64 support
+- **🏗️ Local Build Required**: Due to 3.6GB PyTorch download
+- **📦 Pre-built Images**: Available on Docker Hub after local build
 - **🔧 Easy Setup**: Simple scripts for all operations
 
 ## 🚀 Quick Start
@@ -116,19 +118,28 @@ DOCKERHUB_USERNAME=user docker-compose -f docker-compose.multi.yml --profile doc
 docker-compose -f docker-compose.multi.yml --profile local up
 ```
 
-## 🏗️ Build Infrastructure
+## 🏗️ Build Requirements
 
-### **Docker Build Cloud Integration**
-- **⚡ Faster Builds**: Dedicated build infrastructure
-- **🌐 Multi-Platform**: Native AMD64 and ARM64 builds
-- **💾 Enhanced Caching**: Persistent cache across builds
-- **🔄 Smart Outputs**: PRs cache-only, main branch pushes to registry
+### **Local Build Only**
+⚠️ **This image cannot be built in cloud services** due to:
+- **3.6GB PyTorch ROCm package** download exceeds timeout limits
+- **Build time**: 30-60 minutes depending on network speed
+- **Cloud service limitations**: GitHub Actions and Docker Hub will fail
 
-### **Automated CI/CD**
-- **GitHub Actions** with Docker Build Cloud
-- **Multi-architecture** builds (linux/amd64, linux/arm64)
-- **Smart caching** strategy for optimal performance
-- **Conditional deployment** based on event type
+### **Building Locally**
+```bash
+# Build the image locally (required)
+./build-local.sh
+
+# After successful build, push to Docker Hub
+./quick-push.sh yourusername
+```
+
+### **Why Local Build?**
+- PyTorch ROCm wheel is 3.6GB (torch-2.8.0+rocm6.4)
+- Includes all AMD GPU libraries (ROCm, HIP, MIOpen)
+- Cloud services timeout during large downloads
+- Local builds cache the download for faster rebuilds
 
 ## 🔧 Technical Details
 
@@ -215,7 +226,7 @@ docker-compose build --no-cache
 2. Create a feature branch
 3. Make your changes
 4. Test locally with `./build-local.sh`
-5. Submit a pull request (builds automatically with Build Cloud)
+5. Submit a pull request (note: automated builds not available due to size)
 
 See [Documentation Guide](docs/documentation-guide.md) for documentation standards.
 

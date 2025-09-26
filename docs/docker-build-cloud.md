@@ -1,147 +1,132 @@
-# Docker Build Cloud Integration
+# Docker Build Cloud - Not Suitable for This Project
 
-This project uses **Docker Build Cloud** for faster, more efficient container builds with enhanced caching and multi-platform support.
+⚠️ **IMPORTANT**: This project CANNOT be built using Docker Build Cloud, GitHub Actions, or any cloud-based build service due to the large PyTorch ROCm package size (3.6GB).
 
-## 🚀 Benefits of Docker Build Cloud
+## ❌ Why Cloud Builds Fail
 
-### **Performance**
-- ⚡ **Faster builds** - Dedicated build infrastructure
-- 🔄 **Better caching** - Persistent build cache across runs
-- 🌐 **Multi-platform** - Native ARM64 + AMD64 builds
-- 📦 **Parallel building** - Multiple architectures simultaneously
+### **The PyTorch Problem**
+- **Package Size**: PyTorch with ROCm 6.4 is **3.6GB**
+- **Download File**: `torch-2.8.0+rocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl`
+- **Build Time**: 30-60+ minutes depending on network speed
+- **Timeout Issues**: Most cloud services timeout before completion
 
-### **Efficiency**
-- 💰 **Cost effective** - No GitHub Actions minutes for builds
-- 🎯 **Optimized resources** - Purpose-built for container builds
-- 📈 **Scalable** - Handles complex, large builds efficiently
+### **Cloud Service Limitations**
 
-## 🔧 Configuration
+| Service | Free Limit | Issue |
+|---------|------------|-------|
+| **GitHub Actions** | 6 hour max job | Timeouts on 3.6GB download |
+| **Docker Hub Build** | 2 hour max | Fails during PyTorch download |
+| **GitLab CI** | 3 hour max | Storage and timeout issues |
+| **CircleCI** | 5 hour max | Network bandwidth throttling |
 
-### **Build Cloud Endpoint**
+## ✅ Required: Local Build Process
+
+### **Step 1: Build Locally**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/docker-comfyui-amd.git
+cd docker-comfyui-amd
+
+# Build the image (30-60 minutes)
+./build-local.sh
+# OR
+docker build -t comfyui-rocm .
+```
+
+### **Step 2: Push to Registry**
+```bash
+# Tag the image
+docker tag comfyui-rocm:latest yourusername/comfyui-rocm:latest
+
+# Push to Docker Hub
+docker push yourusername/comfyui-rocm:latest
+```
+
+## 📊 Why PyTorch ROCm is So Large
+
+The PyTorch wheel includes:
+- **ROCm Libraries**: Full AMD GPU compute stack
+- **HIP Runtime**: AMD's CUDA equivalent
+- **MIOpen**: Deep learning primitives (AMD's cuDNN)
+- **rocBLAS**: Basic linear algebra for GPUs
+- **rocFFT**: Fast Fourier transforms
+- **rocRAND**: Random number generation
+- **Tensile**: Optimized GPU kernels
+- **All GPU architectures**: gfx900, gfx906, gfx908, gfx1030, gfx1100, etc.
+
+## 🔧 Local Build Optimization
+
+### **First Build** (30-60 minutes)
+```bash
+# Downloads 3.6GB PyTorch package
+# Builds all layers
+docker build -t comfyui-rocm .
+```
+
+### **Subsequent Builds** (2-5 minutes)
+```bash
+# Uses cached PyTorch layer
+# Only rebuilds changed layers
+docker build -t comfyui-rocm .
+```
+
+## 💡 Alternative Approaches (Not Recommended)
+
+### **1. Pre-built Base Image**
+Create a base image with PyTorch pre-installed:
+```dockerfile
+# pytorch-rocm-base.dockerfile
+FROM ubuntu:24.04
+RUN pip install torch --index-url https://download.pytorch.org/whl/rocm6.4
+```
+Build locally and push, then reference in main Dockerfile.
+
+### **2. Volume Mount PyTorch**
+Download wheel once, mount as volume:
+```bash
+# Download once
+wget https://download.pytorch.org/whl/rocm6.4/torch-2.8.0+rocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl
+
+# Mount during build (experimental)
+docker build --mount=type=bind,source=./torch-2.8.0+rocm6.4.whl,target=/tmp/torch.whl .
+```
+
+### **3. Use CPU Version (No GPU)**
+```dockerfile
+# Small but no GPU acceleration
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
+⚠️ This defeats the purpose of ROCm support!
+
+## 📝 GitHub Actions Configuration
+
+If you still want CI/CD, use it only for:
+- **Linting** and code quality checks
+- **Documentation** updates
+- **Pushing** pre-built images
+- **NOT for building** the Docker image
+
+Example workflow:
 ```yaml
-driver: cloud
-endpoint: "awaybreaktoday/github-public-away"
+name: Push Pre-built Image
+on:
+  workflow_dispatch:
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Note about local build
+        run: |
+          echo "⚠️ This image must be built locally first!"
+          echo "Run: ./build-local.sh"
+          echo "Then: ./quick-push.sh ${{ secrets.DOCKERHUB_USERNAME }}"
 ```
 
-### **Smart Output Strategy**
-```yaml
-# PRs: Cache only (faster feedback, no registry push)
-# Main/Tags: Push to Docker Hub registry
-outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}
-```
+## 🎯 Summary
 
-## 📋 Build Behavior
+1. **Build locally** - Required due to 3.6GB PyTorch
+2. **Push to registry** - After successful local build
+3. **Users pull pre-built** - Fast deployment
+4. **No cloud builds** - They will always fail
 
-| Event Type | Output | Description |
-|------------|--------|-------------|
-| **Pull Request** | `type=cacheonly` | Build + cache, no registry push |
-| **Main Branch Push** | `type=registry` | Build + cache + push to Docker Hub |
-| **Tag Push** | `type=registry` | Build + cache + push with version tags |
-| **Scheduled** | `type=registry` | Weekly builds for security updates |
-
-## 🏗️ Build Process
-
-### **1. Multi-Platform Matrix**
-```yaml
-strategy:
-  matrix:
-    platform:
-      - linux/amd64   # Intel/AMD processors
-      - linux/arm64   # ARM processors (Apple Silicon, etc.)
-```
-
-### **2. Enhanced Caching**
-- **GitHub Actions Cache** - Layer caching between runs
-- **Build Cloud Cache** - Persistent multi-platform cache
-- **Registry Cache** - Pull-through cache optimization
-
-### **3. Conditional Operations**
-- **Docker Hub Description** - Only updated on main branch
-- **Registry Push** - Skipped for PRs (cache only)
-- **Multi-platform** - Both architectures built in parallel
-
-## 📊 Build Output Examples
-
-### **Pull Request Build**
-```
-🏗️ Build completed with Docker Build Cloud!
-📋 Build Details:
-  Platform: linux/amd64
-  Event: pull_request
-  Output: Cache Only (PR)
-```
-
-### **Main Branch Push**
-```
-🏗️ Build completed with Docker Build Cloud!
-📋 Build Details:
-  Platform: linux/amd64
-  Event: push
-  Output: Registry Push
-📦 Tags: awaybreaktoday/comfyui-rocm:latest, awaybreaktoday/comfyui-rocm:main
-```
-
-## 🎯 Key Features Preserved
-
-### **All Previous Features Maintained**
-- ✅ **GitHub Secrets integration** for dynamic metadata
-- ✅ **Multi-platform builds** (AMD64 + ARM64)
-- ✅ **Comprehensive tagging** strategy
-- ✅ **Docker Hub description** updates
-- ✅ **Build metadata** and labels
-- ✅ **Caching optimization**
-
-### **Enhanced with Build Cloud**
-- 🚀 **Faster build times**
-- 💾 **Better cache persistence**
-- 🔄 **More reliable builds**
-- 📈 **Better resource utilization**
-
-## 🔍 Monitoring Builds
-
-### **GitHub Actions Interface**
-- View real-time build progress
-- Monitor both AMD64 and ARM64 builds
-- Check build cloud performance metrics
-- Review cache hit rates
-
-### **Docker Hub**
-- Automatic image updates on successful builds
-- Multi-architecture manifest creation
-- Updated repository descriptions
-- Build provenance information
-
-## 🛠️ Troubleshooting
-
-### **Build Cloud Access Issues**
-```yaml
-# Verify endpoint configuration
-endpoint: "awaybreaktoday/github-public-away"
-```
-
-### **Permission Issues**
-- Ensure Docker Hub secrets are configured
-- Verify build cloud endpoint access
-- Check repository permissions
-
-### **Cache Issues**
-- Build cloud provides persistent caching
-- GitHub Actions cache as fallback
-- Clear cache if builds become inconsistent
-
-## 📚 Documentation Links
-
-- [Docker Build Cloud](https://docs.docker.com/build/cloud/)
-- [GitHub Actions Docker](https://docs.github.com/en/actions/publishing-packages/publishing-docker-images)
-- [Multi-platform Builds](https://docs.docker.com/build/building/multi-platform/)
-
-## 🎉 Result
-
-Your builds now benefit from:
-- **Professional build infrastructure**
-- **Faster build times**
-- **Better caching**
-- **Multi-platform support**
-- **Cost optimization**
-
-Perfect for a production-ready ComfyUI ROCm container! 🐳✨
+This is a limitation of PyTorch's ROCm distribution size, not the Docker configuration. Until AMD provides smaller, modular packages, local builds are the only reliable option.
