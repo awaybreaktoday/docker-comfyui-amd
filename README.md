@@ -134,7 +134,7 @@ docker-compose -f docker-compose.multi.yml --profile local up
 
 ### **Container Stack**
 - **Base**: Ubuntu 24.04 LTS (12 years support)
-- **PyTorch**: Latest nightly with ROCm 6.4 support
+- **PyTorch**: Stable release with ROCm 6.4 support
 - **ComfyUI**: Latest from official repository
 - **Extensions**: MIGraphX for AMD GPU acceleration
 

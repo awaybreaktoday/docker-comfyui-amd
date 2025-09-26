@@ -27,9 +27,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Clone ComfyUI
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
 
-# Install latest PyTorch with ROCm 6.4 support (compatible with ROCm 6.4.4)
+# Install stable PyTorch with ROCm 6.4 support (compatible with ROCm 6.4.4)
 RUN pip install --upgrade pip && \
-    pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
 
 # Install ComfyUI requirements
 RUN pip install -r requirements.txt
@@ -50,7 +50,7 @@ EXPOSE 8188
 RUN echo '#!/bin/bash\n\
 echo "=== ComfyUI with Host ROCm 6.4.4 (Latest) ==="\n\
 echo "Container: Ubuntu 24.04 LTS"\n\
-echo "PyTorch: Latest nightly with ROCm 6.4 (Host: 6.4.4)"\n\
+echo "PyTorch: Stable release with ROCm 6.4 (Host: 6.4.4)"\n\
 echo "Consumer GPU Support: RX 7000/9000 series fully supported"\n\
 echo "ROCm path: $ROCM_PATH"\n\
 echo "Python: $(python --version)"\n\

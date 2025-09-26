@@ -3,10 +3,11 @@
 ## 🐛 Large Download Issue
 
 ### **Problem**
-PyTorch ROCm wheels are very large (~4.5GB), causing build timeouts and cancellations.
+PyTorch ROCm wheels are large, with nightly builds (~4.5GB) causing build timeouts. Using stable releases (~2.5-2.7GB) reduces download size by ~40%.
 
 ```
-torch-2.10.0.dev20250926+rocm6.4-cp312-cp312-manylinux_2_28_x86_64.whl (4496.3 MB)
+torch-2.10.0.dev20250926+rocm6.4... (4496.3 MB) # Nightly
+torch-2.5.1+rocm6.4... (2662.1 MB)              # Stable
 Error: The operation was canceled.
 ```
 
@@ -19,8 +20,8 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir \
     --timeout 3600 \      # 1 hour timeout
     --retries 3 \         # 3 retry attempts
-    --pre torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+    torch torchvision torchaudio \  # Stable release (smaller)
+    --index-url https://download.pytorch.org/whl/rocm6.4
 ```
 
 ### **2. GitHub Actions Timeout**
@@ -47,7 +48,8 @@ RUN pip install --no-cache-dir --timeout 3600 torch torchvision   # Large PyTorc
 
 | Component | Size | Optimization |
 |-----------|------|-------------|
-| **PyTorch ROCm** | ~4.5GB | Extended timeout, retries |
+| **PyTorch ROCm (stable)** | ~2.5-2.7GB | Smaller download, more reliable |
+| **PyTorch ROCm (nightly)** | ~4.5GB | Extended timeout, retries |
 | **TorchVision** | ~500MB | Bundled with PyTorch |
 | **TorchAudio** | ~200MB | Bundled with PyTorch |
 | **ComfyUI deps** | ~100MB | Separate step, faster timeout |
@@ -130,13 +132,13 @@ Error: failed to solve: failed to create endpoint
 ### **If Builds Still Fail**
 1. **Check Docker Build Cloud status**
 2. **Verify network connectivity** to PyTorch index
-3. **Consider using stable releases** instead of nightly
+3. **Now using stable releases** instead of nightly (40% smaller)
 4. **Split builds** further if needed
 
 ### **Fallback Options**
 ```dockerfile
-# Option 1: Use stable PyTorch (smaller, more reliable)
-RUN pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/rocm6.4/
+# Current approach: Use stable PyTorch (smaller, more reliable)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
 
 # Option 2: Multi-stage build
 FROM pytorch/pytorch:2.6.0-rocm6.4-devel as pytorch-base
