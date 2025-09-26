@@ -18,6 +18,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120  # Extended timeout for large PyTorch downloads
     
     strategy:
       matrix:
@@ -115,6 +116,7 @@ jobs:
         echo "📋 Build Details:"
         echo "  Platform: ${{ matrix.platform }}"
         echo "  Event: ${{ github.event_name }}"
+        echo "  Timeout: 120 minutes (extended for large PyTorch downloads)"
         echo "  Maintainer: ${{ secrets.MAINTAINER_NAME || 'ComfyUI ROCm Maintainer' }}"
         echo "  Vendor: ${{ secrets.VENDOR_NAME || github.repository_owner }}"
         echo "  Version: ${{ steps.meta.outputs.version }}"
@@ -124,3 +126,4 @@ jobs:
         echo "  VCS Ref: ${{ github.sha }}"
         echo "📦 Tags: ${{ steps.meta.outputs.tags }}"
         echo "🚀 Output: ${{ github.event_name == 'pull_request' && 'Cache Only (PR)' || 'Registry Push' }}"
+        echo "⚡ PyTorch Download: ~4.5GB per platform (optimized with timeouts and retries)"

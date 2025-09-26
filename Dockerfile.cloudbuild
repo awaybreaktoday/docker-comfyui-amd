@@ -71,28 +71,32 @@ WORKDIR /app
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install latest PyTorch with ROCm 6.4 support (compatible with ROCm 6.4.4)
+# Install PyTorch with ROCm support - optimized for build cloud
+# Use timeout and retry logic for large downloads
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --pre torch torchvision torchaudio \
+    pip install --no-cache-dir \
+    --timeout 3600 \
+    --retries 3 \
+    --pre torch torchvision torchaudio \
     --index-url https://download.pytorch.org/whl/nightly/rocm6.4
 
 # Clone ComfyUI (separate layer for better caching)
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
     git log -1 --format="Commit: %H%nDate: %cd%nMessage: %s" > /app/BUILD_INFO.txt
 
-# Install ComfyUI requirements
+# Install ComfyUI requirements (smaller downloads, faster)
 COPY requirements.txt* ./
 RUN if [ -f requirements.txt ]; then \
-        pip install --no-cache-dir -r requirements.txt; \
+        pip install --no-cache-dir --timeout 300 -r requirements.txt; \
     else \
-        pip install --no-cache-dir -r requirements.txt; \
+        pip install --no-cache-dir --timeout 300 -r requirements.txt; \
     fi
 
-# Install MIGraphX extension
+# Install MIGraphX extension (separate step for better error isolation)
 RUN cd custom_nodes && \
     git clone https://github.com/pnikolic-amd/ComfyUI_MIGraphX.git && \
     cd ComfyUI_MIGraphX && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --timeout 300 -r requirements.txt
 
 # Create directories with proper permissions
 RUN mkdir -p models/{checkpoints,vae,loras,controlnet,unet,clip,clip_vision,style_models,embeddings,diffusers,gligen,upscale_models} \
@@ -115,7 +119,7 @@ EXPOSE 8188
 
 # Enhanced startup script with build info
 RUN echo '#!/bin/bash\n\
-echo "=== ComfyUI with Host ROCm 6.4.4 (Docker Hub Build) ==="\n\
+echo "=== ComfyUI with Host ROCm 6.4.4 (Docker Build Cloud) ==="\n\
 echo "🏗️ Build Information:"\n\
 cat /app/BUILD_INFO.txt\n\
 echo ""\n\
@@ -129,6 +133,7 @@ echo "🏷️ Version: ${IMAGE_VERSION}"\n\
 echo "📚 Docs: ${DOCUMENTATION_URL}"\n\
 echo "📅 Built: ${BUILD_DATE}"\n\
 echo "🔗 Commit: ${VCS_REF}"\n\
+echo "⚡ Built with Docker Build Cloud"\n\
 echo ""\n\
 echo "🔍 Checking ROCm libraries..."\n\
 ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "⚠️  ROCm libs not accessible (normal for host mount)"\n\
