@@ -73,12 +73,15 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install PyTorch with ROCm support - optimized for build cloud
 # Use timeout and retry logic for large downloads
+# RUN pip install --upgrade pip && \
+#     pip install --no-cache-dir \
+#     --timeout 3600 \
+#     --retries 3 \
+#     --pre torch torchvision torchaudio \
+#     --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir \
-    --timeout 3600 \
-    --retries 3 \
-    --pre torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
 
 # Clone ComfyUI (separate layer for better caching)
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
@@ -87,9 +90,9 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
 # Install ComfyUI requirements (smaller downloads, faster)
 COPY requirements.txt* ./
 RUN if [ -f requirements.txt ]; then \
-        pip install --no-cache-dir --timeout 300 -r requirements.txt; \
+    pip install --no-cache-dir --timeout 300 -r requirements.txt; \
     else \
-        pip install --no-cache-dir --timeout 300 -r requirements.txt; \
+    pip install --no-cache-dir --timeout 300 -r requirements.txt; \
     fi
 
 # Install MIGraphX extension (separate step for better error isolation)
@@ -119,40 +122,40 @@ EXPOSE 8188
 
 # Enhanced startup script with build info
 RUN echo '#!/bin/bash\n\
-echo "=== ComfyUI with Host ROCm 6.4.4 (Docker Build Cloud) ==="\n\
-echo "🏗️ Build Information:"\n\
-cat /app/BUILD_INFO.txt\n\
-echo ""\n\
-echo "🐳 Container: Ubuntu ${UBUNTU_VERSION}"\n\
-echo "🔥 PyTorch: ${PYTORCH_VERSION} with ROCm ${ROCM_VERSION} (Host: 6.4.4)"\n\
-echo "🎯 ROCm path: $ROCM_PATH"\n\
-echo "🐍 Python: $(python --version)"\n\
-echo "👤 Maintainer: ${MAINTAINER_NAME}"\n\
-echo "🏢 Vendor: ${VENDOR_NAME}"\n\
-echo "🏷️ Version: ${IMAGE_VERSION}"\n\
-echo "📚 Docs: ${DOCUMENTATION_URL}"\n\
-echo "📅 Built: ${BUILD_DATE}"\n\
-echo "🔗 Commit: ${VCS_REF}"\n\
-echo "⚡ Built with Docker Build Cloud"\n\
-echo ""\n\
-echo "🔍 Checking ROCm libraries..."\n\
-ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "⚠️  ROCm libs not accessible (normal for host mount)"\n\
-echo ""\n\
-echo "🧪 PyTorch status:"\n\
-python -c "import torch; print(f\"PyTorch: {torch.__version__}\"); print(f\"CUDA/ROCm available: {torch.cuda.is_available()}\"); print(f\"Device count: {torch.cuda.device_count()}\")" 2>/dev/null || echo "❌ PyTorch check failed"\n\
-echo ""\n\
-if [ -f /opt/rocm/bin/rocm-smi ]; then\n\
+    echo "=== ComfyUI with Host ROCm 6.4.4 (Docker Build Cloud) ==="\n\
+    echo "🏗️ Build Information:"\n\
+    cat /app/BUILD_INFO.txt\n\
+    echo ""\n\
+    echo "🐳 Container: Ubuntu ${UBUNTU_VERSION}"\n\
+    echo "🔥 PyTorch: ${PYTORCH_VERSION} with ROCm ${ROCM_VERSION} (Host: 6.4.4)"\n\
+    echo "🎯 ROCm path: $ROCM_PATH"\n\
+    echo "🐍 Python: $(python --version)"\n\
+    echo "👤 Maintainer: ${MAINTAINER_NAME}"\n\
+    echo "🏢 Vendor: ${VENDOR_NAME}"\n\
+    echo "🏷️ Version: ${IMAGE_VERSION}"\n\
+    echo "📚 Docs: ${DOCUMENTATION_URL}"\n\
+    echo "📅 Built: ${BUILD_DATE}"\n\
+    echo "🔗 Commit: ${VCS_REF}"\n\
+    echo "⚡ Built with Docker Build Cloud"\n\
+    echo ""\n\
+    echo "🔍 Checking ROCm libraries..."\n\
+    ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "⚠️  ROCm libs not accessible (normal for host mount)"\n\
+    echo ""\n\
+    echo "🧪 PyTorch status:"\n\
+    python -c "import torch; print(f\"PyTorch: {torch.__version__}\"); print(f\"CUDA/ROCm available: {torch.cuda.is_available()}\"); print(f\"Device count: {torch.cuda.device_count()}\")" 2>/dev/null || echo "❌ PyTorch check failed"\n\
+    echo ""\n\
+    if [ -f /opt/rocm/bin/rocm-smi ]; then\n\
     echo "🎮 GPU status:"\n\
     /opt/rocm/bin/rocm-smi --showid 2>/dev/null || echo "❌ rocm-smi failed"\n\
     echo ""\n\
-fi\n\
-echo "🚀 Starting ComfyUI on 0.0.0.0:8188..."\n\
-echo "🌐 Access at: http://localhost:8188"\n\
-echo "📊 View logs: docker logs [container-name]"\n\
-echo "📚 Documentation: ${DOCUMENTATION_URL}"\n\
-echo "💡 Note: Optimized for ROCm 6.4.4 with RX 7000/9000 series support"\n\
-echo ""\n\
-exec python main.py --listen 0.0.0.0 "$@"' > /app/start.sh && \
+    fi\n\
+    echo "🚀 Starting ComfyUI on 0.0.0.0:8188..."\n\
+    echo "🌐 Access at: http://localhost:8188"\n\
+    echo "📊 View logs: docker logs [container-name]"\n\
+    echo "📚 Documentation: ${DOCUMENTATION_URL}"\n\
+    echo "💡 Note: Optimized for ROCm 6.4.4 with RX 7000/9000 series support"\n\
+    echo ""\n\
+    exec python main.py --listen 0.0.0.0 "$@"' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Health check
