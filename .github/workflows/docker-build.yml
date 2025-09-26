@@ -1,4 +1,4 @@
-name: Docker Hub Automated Build - ROCm 6.4.4
+name: Docker Hub Automated Build - ROCm 6.4.4 (Build Cloud)
 
 on:
   push:
@@ -29,17 +29,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Set up Docker Buildx (Build Cloud)
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver: cloud
+        endpoint: "awaybreaktoday/github-public-away"
     
     - name: Extract metadata
       id: meta
@@ -69,12 +69,11 @@ jobs:
           org.opencontainers.image.licenses=GPL-3.0
     
     - name: Build and push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         file: ./Dockerfile.cloudbuild
         platforms: ${{ matrix.platform }}
-        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
@@ -94,10 +93,15 @@ jobs:
           DOCUMENTATION_URL=${{ github.server_url }}/${{ github.repository }}/blob/main/docs/
           BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
           VCS_REF=${{ github.sha }}
+        # For pull requests, export results to the build cache only
+        # Otherwise, push to Docker Hub registry
+        outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=registry' }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
     - name: Update Docker Hub description
+      # Only update description on main branch pushes, not PRs
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: peter-evans/dockerhub-description@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -105,14 +109,18 @@ jobs:
         repository: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
         readme-filepath: ./README.md
 
-    - name: Output image info
+    - name: Output build info
       run: |
-        echo "Image built with the following metadata:"
-        echo "Maintainer: ${{ secrets.MAINTAINER_NAME || 'ComfyUI ROCm Maintainer' }}"
-        echo "Vendor: ${{ secrets.VENDOR_NAME || github.repository_owner }}"
-        echo "Version: ${{ steps.meta.outputs.version }}"
-        echo "Repository: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
-        echo "Documentation: ${{ github.server_url }}/${{ github.repository }}/blob/main/docs/"
-        echo "Build Date: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}"
-        echo "VCS Ref: ${{ github.sha }}"
-        echo "Tags: ${{ steps.meta.outputs.tags }}"
+        echo "🏗️ Build completed with Docker Build Cloud!"
+        echo "📋 Build Details:"
+        echo "  Platform: ${{ matrix.platform }}"
+        echo "  Event: ${{ github.event_name }}"
+        echo "  Maintainer: ${{ secrets.MAINTAINER_NAME || 'ComfyUI ROCm Maintainer' }}"
+        echo "  Vendor: ${{ secrets.VENDOR_NAME || github.repository_owner }}"
+        echo "  Version: ${{ steps.meta.outputs.version }}"
+        echo "  Repository: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+        echo "  Documentation: ${{ github.server_url }}/${{ github.repository }}/blob/main/docs/"
+        echo "  Build Date: ${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}"
+        echo "  VCS Ref: ${{ github.sha }}"
+        echo "📦 Tags: ${{ steps.meta.outputs.tags }}"
+        echo "🚀 Output: ${{ github.event_name == 'pull_request' && 'Cache Only (PR)' || 'Registry Push' }}"

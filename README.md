@@ -2,14 +2,15 @@
 
 **ROCm 6.4.4** - Latest version with full consumer GPU support for RX 7000/9000 series
 
-A lightweight Docker container for running ComfyUI with AMD ROCm support, leveraging your existing host ROCm installation.
+A lightweight Docker container for running ComfyUI with AMD ROCm support, leveraging your existing host ROCm installation. **Built with Docker Build Cloud for faster, more efficient builds.**
 
 ## 🎯 Features
 
 - **🎮 Consumer GPU Support**: Full official support for RX 7000/9000 series
 - **🪟 Cross-Platform**: Windows and Linux compatibility  
 - **⚡ Latest Stack**: Ubuntu 24.04 LTS + PyTorch + ROCm 6.4.4
-- **🚀 Cloud Builds**: Automated Docker Hub builds with GitHub Actions
+- **🚀 Docker Build Cloud**: Fast, reliable automated builds
+- **🏗️ Multi-Platform**: Native AMD64 and ARM64 support
 - **🔧 Easy Setup**: Simple scripts for all operations
 
 ## 🚀 Quick Start
@@ -48,13 +49,14 @@ docker-comfyui-amd/
 ├── 📚 Documentation
 │   ├── docs/models.md               # Model setup guide
 │   ├── docs/github-secrets.md       # GitHub secrets configuration
-│   ├── docs/project-structure.md    # Detailed project overview
-│   └── docs/documentation-guide.md  # Documentation best practices
+│   ├── docs/docker-build-cloud.md   # Build Cloud setup
+│   ├── docs/build-fixes.md          # Recent build fixes
+│   └── docs/project-structure.md    # Detailed project overview
 │
 ├── ⚙️ Configuration
 │   ├── .env.local.example           # Local build environment
 │   ├── .gitignore                   # Git ignore patterns
-│   └── .github/workflows/           # CI/CD automation
+│   └── .github/workflows/           # CI/CD with Build Cloud
 │
 └── 📁 Data Directories
     ├── models/{checkpoints,vae,loras,controlnet}/  # AI models
@@ -114,6 +116,20 @@ DOCKERHUB_USERNAME=user docker-compose -f docker-compose.multi.yml --profile doc
 docker-compose -f docker-compose.multi.yml --profile local up
 ```
 
+## 🏗️ Build Infrastructure
+
+### **Docker Build Cloud Integration**
+- **⚡ Faster Builds**: Dedicated build infrastructure
+- **🌐 Multi-Platform**: Native AMD64 and ARM64 builds
+- **💾 Enhanced Caching**: Persistent cache across builds
+- **🔄 Smart Outputs**: PRs cache-only, main branch pushes to registry
+
+### **Automated CI/CD**
+- **GitHub Actions** with Docker Build Cloud
+- **Multi-architecture** builds (linux/amd64, linux/arm64)
+- **Smart caching** strategy for optimal performance
+- **Conditional deployment** based on event type
+
 ## 🔧 Technical Details
 
 ### **Container Stack**
@@ -139,8 +155,9 @@ docker-compose -f docker-compose.multi.yml --profile local up
 |-------|-------------|
 | **[Model Setup](docs/models.md)** | Download and configure AI models |
 | **[GitHub Secrets](docs/github-secrets.md)** | Configure automated builds |
+| **[Docker Build Cloud](docs/docker-build-cloud.md)** | Build infrastructure details |
+| **[Build Fixes](docs/build-fixes.md)** | Recent Ubuntu 24.04 fixes |
 | **[Project Structure](docs/project-structure.md)** | Detailed project overview |
-| **[Documentation Guide](docs/documentation-guide.md)** | Documentation best practices |
 
 ## 🎮 Supported GPUs
 
@@ -176,6 +193,9 @@ rocm-smi
 docker exec -it comfyui-rocm-6.4.4 python -c "import torch; print(torch.cuda.is_available())"
 ```
 
+### **Build Issues**
+See [Build Fixes Documentation](docs/build-fixes.md) for Ubuntu 24.04 compatibility solutions.
+
 ## 🔄 Updates
 
 ### **Update ComfyUI**
@@ -195,7 +215,7 @@ docker-compose build --no-cache
 2. Create a feature branch
 3. Make your changes
 4. Test locally with `./build-local.sh`
-5. Submit a pull request
+5. Submit a pull request (builds automatically with Build Cloud)
 
 See [Documentation Guide](docs/documentation-guide.md) for documentation standards.
 
@@ -211,7 +231,7 @@ This setup uses:
 
 **Need Help?**
 1. Check the [Model Setup Guide](docs/models.md)
-2. Review [Troubleshooting](docs/project-structure.md#troubleshooting)
+2. Review [Build Cloud Documentation](docs/docker-build-cloud.md)
 3. Check container logs: `./logs.sh`
 4. Verify ROCm: `rocm-smi`
 
@@ -224,4 +244,5 @@ This setup uses:
 
 **Ready to generate amazing AI art with ComfyUI on AMD GPUs! 🎨🚀**
 
-*Optimized for ROCm 6.4.4 with full consumer GPU support*
+*Optimized for ROCm 6.4.4 with full consumer GPU support*  
+*Built with Docker Build Cloud for professional-grade CI/CD*
