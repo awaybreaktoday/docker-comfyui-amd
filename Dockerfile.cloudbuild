@@ -102,8 +102,10 @@ RUN cd custom_nodes && \
     pip install --no-cache-dir --timeout 300 -r requirements.txt
 
 # Create directories with proper permissions
-RUN mkdir -p models/{checkpoints,vae,loras,controlnet,unet,clip,clip_vision,style_models,embeddings,diffusers,gligen,upscale_models} \
-    && mkdir -p {output,input,temp,workflows} \
+RUN mkdir -p models/checkpoints models/vae models/loras models/controlnet models/unet \
+    models/clip models/clip_vision models/style_models models/embeddings \
+    models/diffusers models/gligen models/upscale_models \
+    output input temp workflows \
     && chmod -R 755 models output input temp workflows custom_nodes
 
 # Add build information with dynamic values

@@ -41,8 +41,10 @@ RUN cd custom_nodes && \
     pip install -r requirements.txt
 
 # Create directories
-RUN mkdir -p models/{checkpoints,vae,loras,controlnet,unet,clip,clip_vision,style_models,embeddings,diffusers,gligen,upscale_models} \
-    && mkdir -p {output,input,temp,workflows}
+RUN mkdir -p models/checkpoints models/vae models/loras models/controlnet models/unet \
+    models/clip models/clip_vision models/style_models models/embeddings \
+    models/diffusers models/gligen models/upscale_models \
+    output input temp workflows
 
 EXPOSE 8188
 
