@@ -18,6 +18,8 @@ ARG IMAGE_DESCRIPTION="ComfyUI with AMD ROCm 6.4.4 support - Lightweight contain
 ARG IMAGE_URL=""
 ARG SOURCE_URL=""
 ARG DOCUMENTATION_URL=""
+ARG BUILD_DATE=""
+ARG VCS_REF=""
 
 # Dynamic labels using build arguments
 LABEL maintainer="${MAINTAINER_NAME} <${MAINTAINER_EMAIL}>"
@@ -48,6 +50,7 @@ ENV PYTORCH_VERSION=${PYTORCH_VERSION}
 ENV ROCM_VERSION=${ROCM_VERSION}
 
 # Install Python and dependencies with better caching
+# Note: libgl1-mesa-glx was renamed to libgl1-mesa-dri in Ubuntu 24.04
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -55,7 +58,7 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     curl \
-    libgl1-mesa-glx \
+    libgl1-mesa-dri \
     libglib2.0-0 \
     software-properties-common \
     ca-certificates \
@@ -104,7 +107,9 @@ RUN echo "Build Date: $(date)" >> /app/BUILD_INFO.txt && \
     echo "Maintainer: ${MAINTAINER_NAME}" >> /app/BUILD_INFO.txt && \
     echo "Vendor: ${VENDOR_NAME}" >> /app/BUILD_INFO.txt && \
     echo "Version: ${IMAGE_VERSION}" >> /app/BUILD_INFO.txt && \
-    echo "Documentation: ${DOCUMENTATION_URL}" >> /app/BUILD_INFO.txt
+    echo "Documentation: ${DOCUMENTATION_URL}" >> /app/BUILD_INFO.txt && \
+    echo "Build Date: ${BUILD_DATE}" >> /app/BUILD_INFO.txt && \
+    echo "VCS Ref: ${VCS_REF}" >> /app/BUILD_INFO.txt
 
 EXPOSE 8188
 
@@ -122,6 +127,8 @@ echo "👤 Maintainer: ${MAINTAINER_NAME}"\n\
 echo "🏢 Vendor: ${VENDOR_NAME}"\n\
 echo "🏷️ Version: ${IMAGE_VERSION}"\n\
 echo "📚 Docs: ${DOCUMENTATION_URL}"\n\
+echo "📅 Built: ${BUILD_DATE}"\n\
+echo "🔗 Commit: ${VCS_REF}"\n\
 echo ""\n\
 echo "🔍 Checking ROCm libraries..."\n\
 ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "⚠️  ROCm libs not accessible (normal for host mount)"\n\

@@ -5,6 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
 # Install Python and dependencies
+# Note: libgl1-mesa-glx was renamed to libgl1-mesa-dri in Ubuntu 24.04
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -12,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     curl \
-    libgl1-mesa-glx \
+    libgl1-mesa-dri \
     libglib2.0-0 \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
