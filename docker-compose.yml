@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  comfyui:
+    build: .
+    container_name: comfyui-rocm-6.4.4
+    
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    
+    ports:
+      - "8188:8188"
+    
+    ipc: host
+    shm_size: 8gb
+    
+    volumes:
+      # Mount host ROCm 6.4.4
+      - /opt/rocm:/opt/rocm:ro
+      
+      # ComfyUI directories
+      - ./models:/app/models
+      - ./output:/app/output
+      - ./input:/app/input
+      - ./custom_nodes:/app/custom_nodes
+      - ./temp:/app/temp
+      - ./workflows:/app/workflows
+    
+    environment:
+      - PYTHONPATH=/opt/rocm/lib:$PYTHONPATH
+      - LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
+      - PATH=/opt/rocm/bin:$PATH
+      - ROCM_PATH=/opt/rocm
+      - MIGRAPHX_MLIR_USE_SPECIFIC_OPS=attention
+      # Updated for ROCm 6.4.4 and newest GPU architectures
+      - HCC_AMDGPU_TARGET=gfx1030,gfx1031,gfx1032,gfx1100,gfx1101,gfx1102,gfx1200,gfx1201
+      # ROCm 6.4.4 specific optimizations
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0
+      - PYTORCH_ROCM_ARCH=gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102;gfx1200;gfx1201
+    
+    restart: unless-stopped

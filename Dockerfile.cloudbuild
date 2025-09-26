@@ -1,0 +1,150 @@
+# Lightweight ComfyUI container optimized for Docker Hub cloud builds
+FROM ubuntu:24.04
+
+# Build arguments for flexibility in automated builds
+ARG PYTORCH_VERSION=2.7.1
+ARG ROCM_VERSION=6.4
+ARG UBUNTU_VERSION=24.04
+
+# Build arguments for labels (populated from GitHub secrets/variables)
+ARG MAINTAINER_NAME="Your Name"
+ARG MAINTAINER_EMAIL="your.email@example.com"
+ARG VENDOR_NAME="Your Name"
+ARG IMAGE_VERSION="1.0"
+ARG DOCKERHUB_USERNAME="yourusername"
+ARG GITHUB_USERNAME="yourusername"
+ARG GITHUB_REPO="your-repo"
+ARG IMAGE_DESCRIPTION="ComfyUI with AMD ROCm 6.4.4 support - Lightweight container using host ROCm"
+ARG IMAGE_URL=""
+ARG SOURCE_URL=""
+ARG DOCUMENTATION_URL=""
+
+# Dynamic labels using build arguments
+LABEL maintainer="${MAINTAINER_NAME} <${MAINTAINER_EMAIL}>"
+LABEL description="${IMAGE_DESCRIPTION}"
+LABEL version="${IMAGE_VERSION}"
+LABEL vendor="${VENDOR_NAME}"
+LABEL org.opencontainers.image.title="ComfyUI AMD ROCm"
+LABEL org.opencontainers.image.description="${IMAGE_DESCRIPTION}"
+LABEL org.opencontainers.image.vendor="${VENDOR_NAME}"
+LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
+LABEL org.opencontainers.image.url="${IMAGE_URL:-https://hub.docker.com/r/${DOCKERHUB_USERNAME}/comfyui-rocm}"
+LABEL org.opencontainers.image.source="${SOURCE_URL:-https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}}"
+LABEL org.opencontainers.image.documentation="${DOCUMENTATION_URL:-https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}/blob/main/docs/}"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
+
+# Technical labels
+LABEL rocm.version="${ROCM_VERSION}"
+LABEL pytorch.version="${PYTORCH_VERSION}"
+LABEL ubuntu.version="${UBUNTU_VERSION}"
+LABEL gpu.support="AMD RDNA2,RDNA3,RDNA4"
+LABEL consumer.gpu="RX7000,RX9000"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTORCH_VERSION=${PYTORCH_VERSION}
+ENV ROCM_VERSION=${ROCM_VERSION}
+
+# Install Python and dependencies with better caching
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    wget \
+    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    software-properties-common \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+WORKDIR /app
+
+# Create virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install latest PyTorch with ROCm 6.4 support (compatible with ROCm 6.4.4)
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --pre torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+
+# Clone ComfyUI (separate layer for better caching)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
+    git log -1 --format="Commit: %H%nDate: %cd%nMessage: %s" > /app/BUILD_INFO.txt
+
+# Install ComfyUI requirements
+COPY requirements.txt* ./
+RUN if [ -f requirements.txt ]; then \
+        pip install --no-cache-dir -r requirements.txt; \
+    else \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
+
+# Install MIGraphX extension
+RUN cd custom_nodes && \
+    git clone https://github.com/pnikolic-amd/ComfyUI_MIGraphX.git && \
+    cd ComfyUI_MIGraphX && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Create directories with proper permissions
+RUN mkdir -p models/{checkpoints,vae,loras,controlnet,unet,clip,clip_vision,style_models,embeddings,diffusers,gligen,upscale_models} \
+    && mkdir -p {output,input,temp,workflows} \
+    && chmod -R 755 models output input temp workflows custom_nodes
+
+# Add build information with dynamic values
+RUN echo "Build Date: $(date)" >> /app/BUILD_INFO.txt && \
+    echo "PyTorch Version: ${PYTORCH_VERSION}" >> /app/BUILD_INFO.txt && \
+    echo "ROCm Version: ${ROCM_VERSION} (Compatible with ROCm 6.4.4)" >> /app/BUILD_INFO.txt && \
+    echo "Ubuntu Version: ${UBUNTU_VERSION}" >> /app/BUILD_INFO.txt && \
+    echo "Maintainer: ${MAINTAINER_NAME}" >> /app/BUILD_INFO.txt && \
+    echo "Vendor: ${VENDOR_NAME}" >> /app/BUILD_INFO.txt && \
+    echo "Version: ${IMAGE_VERSION}" >> /app/BUILD_INFO.txt && \
+    echo "Documentation: ${DOCUMENTATION_URL}" >> /app/BUILD_INFO.txt
+
+EXPOSE 8188
+
+# Enhanced startup script with build info
+RUN echo '#!/bin/bash\n\
+echo "=== ComfyUI with Host ROCm 6.4.4 (Docker Hub Build) ==="\n\
+echo "🏗️ Build Information:"\n\
+cat /app/BUILD_INFO.txt\n\
+echo ""\n\
+echo "🐳 Container: Ubuntu ${UBUNTU_VERSION}"\n\
+echo "🔥 PyTorch: ${PYTORCH_VERSION} with ROCm ${ROCM_VERSION} (Host: 6.4.4)"\n\
+echo "🎯 ROCm path: $ROCM_PATH"\n\
+echo "🐍 Python: $(python --version)"\n\
+echo "👤 Maintainer: ${MAINTAINER_NAME}"\n\
+echo "🏢 Vendor: ${VENDOR_NAME}"\n\
+echo "🏷️ Version: ${IMAGE_VERSION}"\n\
+echo "📚 Docs: ${DOCUMENTATION_URL}"\n\
+echo ""\n\
+echo "🔍 Checking ROCm libraries..."\n\
+ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "⚠️  ROCm libs not accessible (normal for host mount)"\n\
+echo ""\n\
+echo "🧪 PyTorch status:"\n\
+python -c "import torch; print(f\"PyTorch: {torch.__version__}\"); print(f\"CUDA/ROCm available: {torch.cuda.is_available()}\"); print(f\"Device count: {torch.cuda.device_count()}\")" 2>/dev/null || echo "❌ PyTorch check failed"\n\
+echo ""\n\
+if [ -f /opt/rocm/bin/rocm-smi ]; then\n\
+    echo "🎮 GPU status:"\n\
+    /opt/rocm/bin/rocm-smi --showid 2>/dev/null || echo "❌ rocm-smi failed"\n\
+    echo ""\n\
+fi\n\
+echo "🚀 Starting ComfyUI on 0.0.0.0:8188..."\n\
+echo "🌐 Access at: http://localhost:8188"\n\
+echo "📊 View logs: docker logs [container-name]"\n\
+echo "📚 Documentation: ${DOCUMENTATION_URL}"\n\
+echo "💡 Note: Optimized for ROCm 6.4.4 with RX 7000/9000 series support"\n\
+echo ""\n\
+exec python main.py --listen 0.0.0.0 "$@"' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8188 || exit 1
+
+CMD ["/app/start.sh"]

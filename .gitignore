@@ -1,0 +1,77 @@
+# Ignore generated images and temporary files
+output/*
+temp/*
+!output/.gitkeep
+!temp/.gitkeep
+
+# Ignore downloaded models (they're large)
+models/checkpoints/*
+models/vae/*
+models/loras/*
+models/controlnet/*
+models/unet/*
+models/clip/*
+models/clip_vision/*
+models/style_models/*
+models/embeddings/*
+models/diffusers/*
+models/gligen/*
+models/upscale_models/*
+!models/*/.gitkeep
+
+# Ignore input files (user-specific)
+input/*
+!input/.gitkeep
+
+# Ignore workflows (may contain user-specific data)
+workflows/*
+!workflows/.gitkeep
+
+# Ignore custom nodes (downloaded at runtime)
+custom_nodes/*
+!custom_nodes/.gitkeep
+
+# Local environment files
+.env
+.env.local
+
+# Personal and temporary documentation (but keep docs/ folder)
+PERSONAL_*.md
+MY_*.md
+LOCAL_*.md
+PRIVATE_*.md
+DRAFT_*.md
+TEMP_*.md
+SCRATCH.md
+NOTES.md
+
+# Generated documentation
+BUILD_REPORT.md
+CHANGELOG_AUTO.md
+*_GENERATED.md
+
+# Docker files
+.docker/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Backup files
+*.bak
+*.backup

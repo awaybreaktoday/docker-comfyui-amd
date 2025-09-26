@@ -1,0 +1,139 @@
+version: '3.8'
+
+# Multi-source Docker Compose configuration
+# This file can use local builds, Docker Hub, or GitHub Container Registry
+
+services:
+  # Option 1: Use Docker Hub automated build (recommended for production)
+  comfyui-dockerhub:
+    image: ${DOCKERHUB_USERNAME:-yourusername}/comfyui-rocm:${TAG:-latest}
+    container_name: comfyui-dockerhub
+    profiles: ["dockerhub"]
+    
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    
+    ports:
+      - "8188:8188"
+    
+    ipc: host
+    shm_size: 8gb
+    
+    volumes:
+      - /opt/rocm:/opt/rocm:ro
+      - ./models:/app/models
+      - ./output:/app/output
+      - ./input:/app/input
+      - ./custom_nodes:/app/custom_nodes
+      - ./temp:/app/temp
+      - ./workflows:/app/workflows
+    
+    environment:
+      - PYTHONPATH=/opt/rocm/lib:$PYTHONPATH
+      - LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
+      - PATH=/opt/rocm/bin:$PATH
+      - ROCM_PATH=/opt/rocm
+      - MIGRAPHX_MLIR_USE_SPECIFIC_OPS=attention
+      - HCC_AMDGPU_TARGET=gfx1030,gfx1031,gfx1032,gfx1100,gfx1101,gfx1102,gfx1200,gfx1201
+    
+    restart: unless-stopped
+
+  # Option 2: Local build (for development)
+  comfyui-local:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudbuild
+      args:
+        PYTORCH_VERSION: 2.7.1
+        ROCM_VERSION: 6.3
+        UBUNTU_VERSION: 24.04
+    container_name: comfyui-local
+    profiles: ["local"]
+    
+    # Same configuration as above
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    
+    ports:
+      - "8188:8188"
+    
+    ipc: host
+    shm_size: 8gb
+    
+    volumes:
+      - /opt/rocm:/opt/rocm:ro
+      - ./models:/app/models
+      - ./output:/app/output
+      - ./input:/app/input
+      - ./custom_nodes:/app/custom_nodes
+      - ./temp:/app/temp
+      - ./workflows:/app/workflows
+    
+    environment:
+      - PYTHONPATH=/opt/rocm/lib:$PYTHONPATH
+      - LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
+      - PATH=/opt/rocm/bin:$PATH
+      - ROCM_PATH=/opt/rocm
+      - MIGRAPHX_MLIR_USE_SPECIFIC_OPS=attention
+      - HCC_AMDGPU_TARGET=gfx1030,gfx1031,gfx1032,gfx1100,gfx1101,gfx1102,gfx1200,gfx1201
+    
+    restart: unless-stopped
+
+  # Option 3: GitHub Container Registry (alternative)
+  comfyui-ghcr:
+    image: ghcr.io/${GITHUB_USERNAME:-yourusername}/comfyui-rocm:${TAG:-latest}
+    container_name: comfyui-ghcr
+    profiles: ["ghcr"]
+    
+    # Same configuration as above
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    
+    ports:
+      - "8188:8188"
+    
+    ipc: host
+    shm_size: 8gb
+    
+    volumes:
+      - /opt/rocm:/opt/rocm:ro
+      - ./models:/app/models
+      - ./output:/app/output
+      - ./input:/app/input
+      - ./custom_nodes:/app/custom_nodes
+      - ./temp:/app/temp
+      - ./workflows:/app/workflows
+    
+    environment:
+      - PYTHONPATH=/opt/rocm/lib:$PYTHONPATH
+      - LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:$LD_LIBRARY_PATH
+      - PATH=/opt/rocm/bin:$PATH
+      - ROCM_PATH=/opt/rocm
+      - MIGRAPHX_MLIR_USE_SPECIFIC_OPS=attention
+      - HCC_AMDGPU_TARGET=gfx1030,gfx1031,gfx1032,gfx1100,gfx1101,gfx1102,gfx1200,gfx1201
+    
+    restart: unless-stopped
