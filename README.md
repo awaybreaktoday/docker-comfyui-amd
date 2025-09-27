@@ -35,18 +35,31 @@ chmod +x *.sh
 # Access at http://localhost:8188
 ```
 
-### **Complete Setup with Extensions**
+### **Complete Setup with Extensions & Models**
 ```bash
 # 1. Install custom nodes and video generation extensions
 ./setup-comfyui.sh
 
-# 2. Download essential models (~25GB)
-./download-models.sh
+# 2. Download models (interactive menu)
+./download-all-models.sh
 
 # 3. Restart with new configuration
 ./stop.sh && ./run.sh
 
 # 4. Install Python dependencies in container
+docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
+```
+
+### **Ollama + Video Generation Setup**
+```bash
+# On MacBook Pro (Ollama server)
+export OLLAMA_HOST=0.0.0.0:11434
+ollama serve
+ollama pull qwen2.5-vl:7b
+
+# On AMD server (complete setup)
+./setup-comfyui.sh && ./download-all-models.sh
+./stop.sh && ./run.sh
 docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
 ```
 
@@ -68,7 +81,7 @@ docker-comfyui-amd/
 │   ├── quick-push.sh                # Push to Docker Hub
 │   ├── setup-dockerhub.sh           # Docker Hub configuration
 │   ├── setup-comfyui.sh             # Install custom nodes & extensions
-│   ├── download-models.sh           # Download AI models
+│   ├── download-all-models.sh       # Download AI models (interactive)
 │   └── container-setup.sh           # Container dependency installer
 │
 ├── 📚 Documentation
@@ -122,7 +135,7 @@ docker-comfyui-amd/
 ### **Extension Management**
 ```bash
 ./setup-comfyui.sh              # Install all custom nodes and extensions
-./download-models.sh            # Download essential AI models
+./download-all-models.sh        # Download AI models (interactive menu)
 docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh  # Install Python deps
 ```
 
@@ -267,6 +280,25 @@ docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
 ./logs.sh | grep "IMPORT FAILED"
 ```
 
+### **GPU Issues (RX 7900 XTX)**
+```bash
+# If you see "HIP error: no kernel image available"
+# Check docker-compose.yml environment variables:
+# HSA_OVERRIDE_GFX_VERSION=11.0.0
+# PYTORCH_ROCM_ARCH=gfx1100
+
+# Restart container after GPU config changes
+./stop.sh && ./run.sh
+
+# Verify GPU detection
+docker exec -it comfyui-rocm-6.4.4 python -c "
+import torch
+print('PyTorch:', torch.__version__)
+print('CUDA available:', torch.cuda.is_available())
+print('Device name:', torch.cuda.get_device_name(0))
+"
+```
+
 ### **Ollama Connection Issues**
 ```bash
 # Test Ollama connection from container
@@ -327,16 +359,23 @@ This setup uses:
 - Include extension versions and Ollama connection details
 
 **Video Generation Tips:**
-- Start with AnimateDiff for smooth motion
-- Use ControlNet for guided generation
-- SDXL models require more VRAM but higher quality
-- Test with 16-frame videos first
+- **AnimateDiff**: Good for smooth motion, works with SD1.5 models
+- **Wan2.2**: Best quality text-to-video, 14B parameters, requires 21GB VRAM
+- **Wan2.2 Fast**: 4-step LoRA mode, 2 minutes vs 8-9 minutes
+- **Resolution**: Start with 640x640, increase if you have VRAM
+- **Prompts**: "A [subject] [action], [style]" format works best
 
 **Ollama Integration Tips:**
 - Use `qwen2.5-vl:7b` for best vision capabilities
-- Set MacBook IP correctly in Ollama nodes
+- Use `llava:13b` as reliable backup
+- Set MacBook IP correctly in Ollama nodes (http://IP:11434)
 - Ensure firewall allows port 11434
 - Test connection with curl before using nodes
+
+**RX 7900 XTX Specific:**
+- Environment variables configured for gfx1100 architecture
+- 24GB VRAM: Can run Wan2.2 models at 640x640
+- If GPU errors: restart container after env changes
 
 ---
 

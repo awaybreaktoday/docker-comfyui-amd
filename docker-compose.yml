@@ -14,7 +14,6 @@ services:
       - /dev/dri:/dev/dri
     group_add:
       - video
-      - render
     
     ports:
       - "8188:8188"
@@ -43,10 +42,14 @@ services:
       - PATH=/opt/rocm/bin:$PATH
       - ROCM_PATH=/opt/rocm
       - MIGRAPHX_MLIR_USE_SPECIFIC_OPS=attention
-      # Updated for ROCm 6.4.4 and newest GPU architectures
-      - HCC_AMDGPU_TARGET=gfx1030,gfx1031,gfx1032,gfx1100,gfx1101,gfx1102,gfx1200,gfx1201
-      # ROCm 6.4.4 specific optimizations
-      - HSA_OVERRIDE_GFX_VERSION=10.3.0
-      - PYTORCH_ROCM_ARCH=gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102;gfx1200;gfx1201
+      # Force RX 7900 XTX (gfx1100) compatibility
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - PYTORCH_ROCM_ARCH=gfx1100
+      - HIP_VISIBLE_DEVICES=0
+      - ROCR_VISIBLE_DEVICES=0
+      - GPU_DEVICE_ORDINAL=0
+      - HCC_AMDGPU_TARGET=gfx1100
+      - AMDGPU_TARGETS=gfx1100
+      - HSA_ENABLE_SDMA=0
     
     restart: unless-stopped

@@ -76,6 +76,7 @@ EXPOSE 8188
 
 # Minimal startup script
 RUN echo '#!/bin/bash\n\
+source /opt/venv/bin/activate\n\
 echo "=== ComfyUI with Host ROCm (Optimized) ==="\n\
 echo "Container: Ubuntu 24.04 LTS (Minimal)"\n\
 echo "PyTorch: Stable with ROCm 6.4"\n\
