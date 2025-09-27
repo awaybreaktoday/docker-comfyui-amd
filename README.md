@@ -9,14 +9,19 @@ A lightweight Docker container for running ComfyUI with AMD ROCm support, levera
 ## 🎯 Features
 
 - **🎮 Consumer GPU Support**: Full official support for RX 7000/9000 series
-- **🪟 Cross-Platform**: Windows and Linux compatibility  
+- **🪟 Cross-Platform**: Windows and Linux compatibility
 - **⚡ Latest Stack**: Ubuntu 24.04 LTS + PyTorch + ROCm 6.4.4
 - **🏗️ Multi-Stage Builds**: Optimized Dockerfiles for smaller images
 - **📦 Cloud Build Support**: GitHub Actions + Docker Build Cloud compatible
 - **🔧 Easy Setup**: Simple scripts for all operations
+- **🎬 Video Generation**: AnimateDiff, CogVideoX, and SVD support
+- **🤖 Ollama Integration**: Connect to external Ollama server for LLM workflows
+- **👁️ Advanced Vision**: Qwen2.5-VL and Florence2 vision models
+- **🚀 Automated Setup**: Host-managed custom nodes and model downloads
 
 ## 🚀 Quick Start
 
+### **Basic Setup**
 ```bash
 # Clone and navigate
 cd Developer/src/personal/docker-comfyui-amd
@@ -28,6 +33,21 @@ chmod +x *.sh
 ./run.sh
 
 # Access at http://localhost:8188
+```
+
+### **Complete Setup with Extensions**
+```bash
+# 1. Install custom nodes and video generation extensions
+./setup-comfyui.sh
+
+# 2. Download essential models (~25GB)
+./download-models.sh
+
+# 3. Restart with new configuration
+./stop.sh && ./run.sh
+
+# 4. Install Python dependencies in container
+docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
 ```
 
 ## 📁 Project Structure
@@ -46,7 +66,10 @@ docker-comfyui-amd/
 │   ├── stop.sh / logs.sh / update.sh # Management
 │   ├── build-local.sh               # Local builds with metadata
 │   ├── quick-push.sh                # Push to Docker Hub
-│   └── setup-dockerhub.sh           # Docker Hub configuration
+│   ├── setup-dockerhub.sh           # Docker Hub configuration
+│   ├── setup-comfyui.sh             # Install custom nodes & extensions
+│   ├── download-models.sh           # Download AI models
+│   └── container-setup.sh           # Container dependency installer
 │
 ├── 📚 Documentation
 │   ├── docs/models.md               # Model setup guide
@@ -91,9 +114,28 @@ docker-comfyui-amd/
 ### **Basic Operations**
 ```bash
 ./run.sh          # Start ComfyUI container
-./stop.sh         # Stop container  
+./stop.sh         # Stop container
 ./logs.sh         # View real-time logs
 ./update.sh       # Update and rebuild
+```
+
+### **Extension Management**
+```bash
+./setup-comfyui.sh              # Install all custom nodes and extensions
+./download-models.sh            # Download essential AI models
+docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh  # Install Python deps
+```
+
+### **Ollama Integration**
+```bash
+# On your MacBook Pro (Ollama server)
+export OLLAMA_HOST=0.0.0.0:11434
+ollama serve
+ollama pull qwen2.5-vl:7b
+ollama pull llava:13b
+
+# In ComfyUI nodes, set Ollama URL to:
+# http://YOUR-MACBOOK-IP:11434
 ```
 
 ### **Docker Hub Deployment**
@@ -148,6 +190,15 @@ docker-compose -f docker-compose.multi.yml --profile local up
 - **PyTorch**: Stable release with ROCm 6.4 support
 - **ComfyUI**: Latest from official repository
 - **Extensions**: MIGraphX for AMD GPU acceleration
+- **Custom Nodes**: Video generation, Ollama integration, advanced vision models
+
+### **Included Extensions**
+- **🎬 Video Generation**: AnimateDiff, CogVideoX, VideoHelperSuite
+- **🤖 Ollama Integration**: comfyui-ollama, Ollama-Describer
+- **👁️ Vision Models**: Qwen2.5-VL, Florence2, CLIP Vision
+- **🎮 ControlNet**: Advanced pose and edge control for generation
+- **📈 Upscaling**: RealESRGAN, ESRGAN variants
+- **🔧 Utilities**: Custom Scripts, Manager, Impact Pack
 
 ### **ROCm 6.4.4 Integration**
 - **Consumer GPU Support**: Official RX 7000/9000 series support
@@ -185,7 +236,7 @@ docker-compose -f docker-compose.multi.yml --profile local up
 # Check ROCm installation
 ls -la /opt/rocm && cat /opt/rocm/.info/version
 
-# Verify Docker permissions  
+# Verify Docker permissions
 groups $USER | grep docker
 
 # Check GPU devices
@@ -202,6 +253,28 @@ rocm-smi
 
 # Test PyTorch in container
 docker exec -it comfyui-rocm-6.4.4 python -c "import torch; print(torch.cuda.is_available())"
+```
+
+### **Extension Issues**
+```bash
+# Reinstall custom nodes
+./setup-comfyui.sh
+
+# Install missing Python dependencies
+docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
+
+# Check for import errors
+./logs.sh | grep "IMPORT FAILED"
+```
+
+### **Ollama Connection Issues**
+```bash
+# Test Ollama connection from container
+docker exec -it comfyui-rocm-6.4.4 curl http://YOUR-MACBOOK-IP:11434/api/tags
+
+# Check MacBook firewall (allow port 11434)
+# Verify OLLAMA_HOST environment variable
+echo $OLLAMA_HOST  # Should be 0.0.0.0:11434
 ```
 
 ### **Build Issues**
@@ -245,15 +318,30 @@ This setup uses:
 2. Review [Build Cloud Documentation](docs/docker-build-cloud.md)
 3. Check container logs: `./logs.sh`
 4. Verify ROCm: `rocm-smi`
+5. Test extension setup: `./setup-comfyui.sh`
 
 **Found a Bug?**
 - Open an issue with your system details
 - Include container logs and ROCm version
 - Specify your GPU model
+- Include extension versions and Ollama connection details
+
+**Video Generation Tips:**
+- Start with AnimateDiff for smooth motion
+- Use ControlNet for guided generation
+- SDXL models require more VRAM but higher quality
+- Test with 16-frame videos first
+
+**Ollama Integration Tips:**
+- Use `qwen2.5-vl:7b` for best vision capabilities
+- Set MacBook IP correctly in Ollama nodes
+- Ensure firewall allows port 11434
+- Test connection with curl before using nodes
 
 ---
 
-**Ready to generate amazing AI art with ComfyUI on AMD GPUs! 🎨🚀**
+**Ready to generate amazing AI art and videos with ComfyUI on AMD GPUs! 🎨🚀**
 
-*Optimized for ROCm 6.4.4 with full consumer GPU support*  
+*Optimized for ROCm 6.4.4 with full consumer GPU support*
 *Built with Docker Build Cloud for professional-grade CI/CD*
+*Enhanced with video generation, Ollama integration, and advanced vision models*
