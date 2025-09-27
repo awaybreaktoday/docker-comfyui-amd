@@ -25,7 +25,7 @@ services:
     volumes:
       # Mount host ROCm 6.4.4
       - /opt/rocm:/opt/rocm:ro
-      
+
       # ComfyUI directories
       - ./models:/app/models
       - ./output:/app/output
@@ -33,6 +33,9 @@ services:
       - ./custom_nodes:/app/custom_nodes
       - ./temp:/app/temp
       - ./workflows:/app/workflows
+
+      # Setup scripts
+      - ./container-setup.sh:/app/setup.sh:ro
     
     environment:
       - PYTHONPATH=/opt/rocm/lib:$PYTHONPATH
