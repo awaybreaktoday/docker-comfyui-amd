@@ -3,10 +3,17 @@
 # ComfyUI AMD ROCm Docker Hub Push Script
 # Replace YOUR_DOCKERHUB_USERNAME with your actual Docker Hub username
 
+# Load .env.local if it exists
+if [ -f .env.local ]; then
+    set -a
+    source .env.local
+    set +a
+fi
+
 # Configuration - EDIT THESE VARIABLES
-DOCKERHUB_USERNAME="YOUR_DOCKERHUB_USERNAME"  # Replace with your Docker Hub username
+DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-YOUR_DOCKERHUB_USERNAME}"  # Replace with your Docker Hub username
 IMAGE_NAME="comfyui-rocm"
-VERSION="latest"
+VERSION="${IMAGE_VERSION:-latest}"
 
 # Color codes for output
 RED='\033[0;31m'

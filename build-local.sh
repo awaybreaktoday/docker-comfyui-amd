@@ -13,6 +13,14 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🏗️ Local Build with Custom Metadata${NC}"
 echo "================================================"
 
+# Load .env.local if it exists
+if [ -f .env.local ]; then
+    echo -e "${GREEN}📁 Loading configuration from .env.local${NC}"
+    set -a  # automatically export all variables
+    source .env.local
+    set +a  # turn off automatic export
+fi
+
 # Default values (can be overridden with environment variables or arguments)
 MAINTAINER_NAME="${MAINTAINER_NAME:-Your Name}"
 MAINTAINER_EMAIL="${MAINTAINER_EMAIL:-your.email@example.com}"

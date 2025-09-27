@@ -3,8 +3,15 @@
 # Quick Docker Hub push script
 # Usage: ./quick-push.sh [your-dockerhub-username] [optional-version-tag]
 
-DOCKERHUB_USERNAME="$1"
-VERSION_TAG="${2:-latest}"
+# Load .env.local if it exists
+if [ -f .env.local ]; then
+    set -a
+    source .env.local
+    set +a
+fi
+
+DOCKERHUB_USERNAME="${1:-$DOCKERHUB_USERNAME}"
+VERSION_TAG="${2:-${IMAGE_VERSION:-latest}}"
 IMAGE_NAME="comfyui-rocm"
 
 if [ -z "$DOCKERHUB_USERNAME" ]; then

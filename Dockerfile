@@ -1,22 +1,18 @@
-# Lightweight ComfyUI container using host ROCm - UPDATED TO ROCM 6.4.4
-FROM ubuntu:24.04
+# Optimized ComfyUI container using host ROCm - Reduced size version
+FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
-# Install Python and dependencies
-# Note: libgl1-mesa-glx was renamed to libgl1-mesa-dri in Ubuntu 24.04
-RUN apt-get update && apt-get install -y \
+# Install build dependencies in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
     git \
-    wget \
-    curl \
-    libgl1-mesa-dri \
-    libglib2.0-0 \
-    software-properties-common \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 WORKDIR /app
 
@@ -24,23 +20,53 @@ WORKDIR /app
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Clone ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
+# Install PyTorch and dependencies with no cache
+RUN pip install --upgrade --no-cache-dir pip wheel && \
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
 
-# Install stable PyTorch with ROCm 6.4 support (compatible with ROCm 6.4.4)
-RUN pip install --upgrade pip && \
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4
+# Clone ComfyUI and remove git history to save space
+RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git . && \
+    rm -rf .git
 
 # Install ComfyUI requirements
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install MIGraphX extension
+# Install MIGraphX extension without git history
 RUN cd custom_nodes && \
-    git clone https://github.com/pnikolic-amd/ComfyUI_MIGraphX.git && \
+    git clone --depth 1 https://github.com/pnikolic-amd/ComfyUI_MIGraphX.git && \
     cd ComfyUI_MIGraphX && \
-    pip install -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    rm -rf .git
 
-# Create directories
+# Clean up pip cache
+RUN pip cache purge 2>/dev/null || true
+
+# Final stage - minimal runtime image
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libgomp1 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get autoremove -y
+
+WORKDIR /app
+
+# Copy virtual environment and app from builder
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app /app
+
+# Create necessary directories
 RUN mkdir -p models/checkpoints models/vae models/loras models/controlnet models/unet \
     models/clip models/clip_vision models/style_models models/embeddings \
     models/diffusers models/gligen models/upscale_models \
@@ -48,28 +74,16 @@ RUN mkdir -p models/checkpoints models/vae models/loras models/controlnet models
 
 EXPOSE 8188
 
-# Startup script with enhanced diagnostics for ROCm 6.4.4
+# Minimal startup script
 RUN echo '#!/bin/bash\n\
-echo "=== ComfyUI with Host ROCm 6.4.4 (Latest) ==="\n\
-echo "Container: Ubuntu 24.04 LTS"\n\
-echo "PyTorch: Stable release with ROCm 6.4 (Host: 6.4.4)"\n\
-echo "Consumer GPU Support: RX 7000/9000 series fully supported"\n\
-echo "ROCm path: $ROCM_PATH"\n\
+echo "=== ComfyUI with Host ROCm (Optimized) ==="\n\
+echo "Container: Ubuntu 24.04 LTS (Minimal)"\n\
+echo "PyTorch: Stable with ROCm 6.4"\n\
 echo "Python: $(python --version)"\n\
 echo ""\n\
-echo "Checking ROCm 6.4.4 libraries..."\n\
-ls -la /opt/rocm/lib/ | head -3 2>/dev/null || echo "ROCm libs not accessible"\n\
+python -c "import torch; print(f\"PyTorch: {torch.__version__}\"); print(f\"ROCm available: {torch.cuda.is_available()}\")" 2>/dev/null || echo "PyTorch check failed"\n\
 echo ""\n\
-echo "PyTorch status:"\n\
-python -c "import torch; print(f\"PyTorch: {torch.__version__}\"); print(f\"CUDA/ROCm available: {torch.cuda.is_available()}\"); print(f\"Device count: {torch.cuda.device_count()}\")" 2>/dev/null || echo "PyTorch check failed"\n\
-echo ""\n\
-if [ -f /opt/rocm/bin/rocm-smi ]; then\n\
-    echo "GPU status (ROCm 6.4.4):"\n\
-    /opt/rocm/bin/rocm-smi --showid 2>/dev/null || echo "rocm-smi failed"\n\
-    echo ""\n\
-fi\n\
 echo "Starting ComfyUI on 0.0.0.0:8188..."\n\
-echo "Note: Optimized for ROCm 6.4.4 with consumer GPU support"\n\
 exec python main.py --listen 0.0.0.0 "$@"' > /app/start.sh && \
     chmod +x /app/start.sh
 

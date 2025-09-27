@@ -6,11 +6,18 @@
 echo "🌟 Docker Hub Paid Account Configuration"
 echo "========================================"
 
+# Load .env.local if it exists
+if [ -f .env.local ]; then
+    set -a
+    source .env.local
+    set +a
+fi
+
 # Configuration variables
-DOCKERHUB_USERNAME="${1:-YOUR_DOCKERHUB_USERNAME}"
+DOCKERHUB_USERNAME="${1:-${DOCKERHUB_USERNAME:-YOUR_DOCKERHUB_USERNAME}}"
 REPO_NAME="comfyui-rocm"
-GITHUB_USERNAME="${2:-YOUR_GITHUB_USERNAME}"
-GITHUB_REPO="${3:-docker-comfyui-amd}"
+GITHUB_USERNAME="${2:-${GITHUB_USERNAME:-YOUR_GITHUB_USERNAME}}"
+GITHUB_REPO="${3:-${GITHUB_REPO:-docker-comfyui-amd}}"
 
 if [ "$DOCKERHUB_USERNAME" = "YOUR_DOCKERHUB_USERNAME" ]; then
     echo "❌ Please provide your Docker Hub username"
