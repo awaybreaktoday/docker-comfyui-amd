@@ -27,34 +27,29 @@ apt-get install -y -qq \
     unzip \
     curl \
     ffmpeg \
-    libgl1-mesa-glx \
+    libgl1 \
+    libgl1-mesa-dri \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1
 
-# Install Python packages
-pip install --no-cache-dir \
-    ollama>=0.3.0 \
-    opencv-python \
-    imageio \
-    imageio-ffmpeg \
-    torchvision \
-    accelerate \
-    transformers \
-    diffusers \
-    controlnet-aux \
-    insightface \
-    onnxruntime \
-    mediapipe \
-    segment-anything \
-    ultralytics \
-    xformers \
-    ftfy \
-    spandrel \
-    kornia \
-    torchsde
+BASE_PYTHON_PACKAGES=(
+    "opencv-python"
+    "imageio"
+    "imageio-ffmpeg"
+    "torchvision"
+    "accelerate"
+    "transformers"
+    "diffusers"
+    "controlnet-aux"
+    "insightface"
+    "mediapipe"
+    "segment-anything"
+)
+
+pip install --no-cache-dir "${BASE_PYTHON_PACKAGES[@]}"
 
 echo -e "${GREEN}✅ System dependencies installed${NC}"
 
@@ -64,9 +59,12 @@ if [ -d "/app/custom_nodes" ]; then
 
     find /app/custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \;
 
-    # Install specific requirements for key extensions
-    if [ -f "/app/custom_nodes/requirements_custom.txt" ]; then
-        pip install --no-cache-dir -r /app/custom_nodes/requirements_custom.txt
+    CUSTOM_REQ="/app/custom_nodes/requirements_custom.txt"
+    if [ -f "$CUSTOM_REQ" ]; then
+        echo -e "${BLUE}📄 Installing curated requirements from setup script...${NC}"
+        pip install --no-cache-dir -r "$CUSTOM_REQ"
+    else
+        echo -e "${YELLOW}⚠️ requirements_custom.txt not found; skipping curated install${NC}"
     fi
 fi
 

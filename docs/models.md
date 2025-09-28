@@ -10,6 +10,20 @@ Place your models in the appropriate directories:
 - `models/clip/` - CLIP models
 - `models/unet/` - U-Net models
 
+## One-Command Downloads
+
+Use the interactive script to fetch curated bundles automatically:
+
+```bash
+./download-models.sh --essential     # SD1.5, SDXL, VAEs
+./download-models.sh --animatediff   # AnimateDiff models + motion LoRA
+./download-models.sh --controlnet    # ControlNet, upscalers, CLIP Vision
+./download-models.sh --wan           # Wan2.2 diffusion/text encoder bundle (~35GB)
+./download-models.sh --all           # Everything listed above
+```
+
+Run without flags for an interactive menu. The script skips models that already exist.
+
 ## Latest Popular Models to Download
 
 ### 1. **Stable Diffusion 3 Medium** (Latest)

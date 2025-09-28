@@ -2,7 +2,14 @@ version: '3.8'
 
 services:
   comfyui:
-    build: .
+    image: ${COMFYUI_IMAGE:-comfyui-rocm:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudbuild
+      args:
+        PYTORCH_VERSION: ${PYTORCH_VERSION:-2.7.1}
+        ROCM_VERSION: ${ROCM_VERSION:-6.4}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-24.04}
     container_name: comfyui-rocm-6.4.4
     
     cap_add:
@@ -14,6 +21,7 @@ services:
       - /dev/dri:/dev/dri
     group_add:
       - video
+      - render
     
     ports:
       - "8188:8188"

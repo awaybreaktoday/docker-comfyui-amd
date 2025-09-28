@@ -4,9 +4,10 @@
 
 ### **Project Documentation (Always Include)**
 - `README.md` - Main project documentation
-- `MODELS.md` - Setup guides for users
-- `GITHUB_SECRETS.md` - Configuration instructions
-- `PROJECT_STRUCTURE.md` - Project overview
+- `models.md` - Setup guides for users
+- `building-and-publishing.md` - Build workflow & publishing instructions
+- `github-secrets.md` - Metadata configuration
+- `project-structure.md` - Project overview
 - `CHANGELOG.md` - Version history (if created)
 - `CONTRIBUTING.md` - Contribution guidelines (if created)
 - `LICENSE.md` - License information (if needed)
@@ -45,9 +46,10 @@ CHANGELOG_AUTO.md
 
 All your current `.md` files are **properly included** in git:
 - ✅ `README.md` - Essential project documentation
-- ✅ `MODELS.md` - User setup guide
-- ✅ `GITHUB_SECRETS.md` - Configuration instructions
-- ✅ `PROJECT_STRUCTURE.md` - Project overview
+- ✅ `models.md` - User setup guide
+- ✅ `building-and-publishing.md` - Build guidance
+- ✅ `github-secrets.md` - Metadata configuration
+- ✅ `project-structure.md` - Project overview
 
 ## 🔧 Future Considerations
 

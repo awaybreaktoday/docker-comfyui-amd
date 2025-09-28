@@ -12,7 +12,7 @@ A lightweight Docker container for running ComfyUI with AMD ROCm support, levera
 - **🪟 Cross-Platform**: Windows and Linux compatibility
 - **⚡ Latest Stack**: Ubuntu 24.04 LTS + PyTorch + ROCm 6.4.4
 - **🏗️ Multi-Stage Builds**: Optimized Dockerfiles for smaller images
-- **📦 Cloud Build Support**: GitHub Actions + Docker Build Cloud compatible
+- **🧰 Local Build Tooling**: Scripts manage ROCm builds and metadata locally
 - **🔧 Easy Setup**: Simple scripts for all operations
 - **🎬 Video Generation**: AnimateDiff, CogVideoX, and SVD support
 - **🤖 Ollama Integration**: Connect to external Ollama server for LLM workflows
@@ -24,10 +24,17 @@ A lightweight Docker container for running ComfyUI with AMD ROCm support, levera
 ### **Basic Setup**
 ```bash
 # Clone and navigate
-cd Developer/src/personal/docker-comfyui-amd
+git clone https://github.com/awaybreaktoday/docker-comfyui-rocm.git
+cd docker-comfyui-rocm
 
-# Make scripts executable
-chmod +x *.sh
+# Install custom nodes and recommended extensions
+./setup-comfyui.sh
+
+# Download essential model bundle (interactive flags available)
+./download-models.sh --essential
+
+# Build the local image once (adds comfyui-rocm:local)
+./build-local.sh --maintainer-name "Your Name"
 
 # Start ComfyUI
 ./run.sh
@@ -35,19 +42,19 @@ chmod +x *.sh
 # Access at http://localhost:8188
 ```
 
-### **Complete Setup with Extensions & Models**
+### **Add Video + Wan2.2 Workflows**
 ```bash
-# 1. Install custom nodes and video generation extensions
-./setup-comfyui.sh
+# AnimateDiff bundle
+./download-models.sh --animatediff
 
-# 2. Download models (interactive menu)
-./download-all-models.sh
+# Wan2.2 bundle (~35GB)
+./download-models.sh --wan
 
-# 3. Restart with new configuration
+# Restart to load new assets
 ./stop.sh && ./run.sh
 
-# 4. Install Python dependencies in container
-docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
+# Optional: install extra Python requirements inside the container
+docker exec -it comfyui-rocm-6.4.4 /app/setup.sh
 ```
 
 ### **Ollama + Video Generation Setup**
@@ -58,7 +65,7 @@ ollama serve
 ollama pull qwen2.5-vl:7b
 
 # On AMD server (complete setup)
-./setup-comfyui.sh && ./download-all-models.sh
+./setup-comfyui.sh && ./download-models.sh --all
 ./stop.sh && ./run.sh
 docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
 ```
@@ -66,11 +73,11 @@ docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh
 ## 📁 Project Structure
 
 ```
-docker-comfyui-amd/
+docker-comfyui-rocm/
 ├── 📋 Core Files
 │   ├── README.md                    # This file
 │   ├── Dockerfile                   # Multi-stage optimized build
-│   ├── Dockerfile.cloudbuild        # Multi-stage with metadata for cloud builds
+│   ├── Dockerfile.cloudbuild        # Metadata-rich build used locally/published
 │   ├── docker-compose.yml           # Standard deployment
 │   └── docker-compose.multi.yml     # Multi-source deployment
 │
@@ -81,20 +88,20 @@ docker-comfyui-amd/
 │   ├── quick-push.sh                # Push to Docker Hub
 │   ├── setup-dockerhub.sh           # Docker Hub configuration
 │   ├── setup-comfyui.sh             # Install custom nodes & extensions
-│   ├── download-all-models.sh       # Download AI models (interactive)
+│   ├── download-models.sh           # Download AI models (interactive/CLI)
 │   └── container-setup.sh           # Container dependency installer
 │
 ├── 📚 Documentation
 │   ├── docs/models.md               # Model setup guide
-│   ├── docs/github-secrets.md       # GitHub secrets configuration
-│   ├── docs/docker-build-cloud.md   # Build Cloud setup
-│   ├── docs/build-fixes.md          # Recent build fixes
+│   ├── docs/github-secrets.md       # Docker metadata configuration
+│   ├── docs/building-and-publishing.md # Local build workflow & publishing
+│   ├── docs/build-fixes.md          # Recent Ubuntu 24.04 fixes
 │   └── docs/project-structure.md    # Detailed project overview
 │
 ├── ⚙️ Configuration
 │   ├── .env.local.example           # Local build environment
 │   ├── .gitignore                   # Git ignore patterns
-│   └── .github/workflows/           # CI/CD with Build Cloud
+│   └── .github/workflows/           # Metadata automation (no container builds)
 │
 └── 📁 Data Directories
     ├── models/{checkpoints,vae,loras,controlnet}/  # AI models
@@ -135,7 +142,7 @@ docker-comfyui-amd/
 ### **Extension Management**
 ```bash
 ./setup-comfyui.sh              # Install all custom nodes and extensions
-./download-all-models.sh        # Download AI models (interactive menu)
+./download-models.sh --all      # Download AI models (interactive or CLI)
 docker exec -it comfyui-rocm-6.4.4 bash /app/setup.sh  # Install Python deps
 ```
 
@@ -169,8 +176,8 @@ source .env.local && ./build-local.sh
 ### **Multi-Platform Deployment**
 ```bash
 # Use different sources
-DOCKERHUB_USERNAME=user docker-compose -f docker-compose.multi.yml --profile dockerhub up
-docker-compose -f docker-compose.multi.yml --profile local up
+DOCKERHUB_USERNAME=user docker compose -f docker-compose.multi.yml --profile dockerhub up
+docker compose -f docker-compose.multi.yml --profile local up
 ```
 
 ## 🏗️ Build Requirements
@@ -229,8 +236,8 @@ docker-compose -f docker-compose.multi.yml --profile local up
 | Guide | Description |
 |-------|-------------|
 | **[Model Setup](docs/models.md)** | Download and configure AI models |
-| **[GitHub Secrets](docs/github-secrets.md)** | Configure automated builds |
-| **[Docker Build Cloud](docs/docker-build-cloud.md)** | Build infrastructure details |
+| **[Building & Publishing](docs/building-and-publishing.md)** | Local build workflow, storage tips, publishing |
+| **[GitHub Secrets](docs/github-secrets.md)** | Configure image metadata for GH workflows |
 | **[Build Fixes](docs/build-fixes.md)** | Recent Ubuntu 24.04 fixes |
 | **[Project Structure](docs/project-structure.md)** | Detailed project overview |
 
@@ -322,7 +329,7 @@ See [Build Fixes Documentation](docs/build-fixes.md) for Ubuntu 24.04 compatibil
 ### **Update Container**
 ```bash
 # Rebuild with latest packages
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ## 🤝 Contributing
@@ -347,7 +354,7 @@ This setup uses:
 
 **Need Help?**
 1. Check the [Model Setup Guide](docs/models.md)
-2. Review [Build Cloud Documentation](docs/docker-build-cloud.md)
+2. Review [Building & Publishing](docs/building-and-publishing.md)
 3. Check container logs: `./logs.sh`
 4. Verify ROCm: `rocm-smi`
 5. Test extension setup: `./setup-comfyui.sh`
@@ -382,5 +389,5 @@ This setup uses:
 **Ready to generate amazing AI art and videos with ComfyUI on AMD GPUs! 🎨🚀**
 
 *Optimized for ROCm 6.4.4 with full consumer GPU support*
-*Built with Docker Build Cloud for professional-grade CI/CD*
+*Built for local ROCm environments—publish once, run anywhere*
 *Enhanced with video generation, Ollama integration, and advanced vision models*

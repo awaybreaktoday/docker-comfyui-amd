@@ -48,13 +48,14 @@ services:
 
   # Option 2: Local build (for development)
   comfyui-local:
+    image: ${COMFYUI_IMAGE:-comfyui-rocm:local}
     build:
       context: .
       dockerfile: Dockerfile.cloudbuild
       args:
-        PYTORCH_VERSION: 2.7.1
-        ROCM_VERSION: 6.3
-        UBUNTU_VERSION: 24.04
+        PYTORCH_VERSION: ${PYTORCH_VERSION:-2.7.1}
+        ROCM_VERSION: ${ROCM_VERSION:-6.4}
+        UBUNTU_VERSION: ${UBUNTU_VERSION:-24.04}
     container_name: comfyui-local
     profiles: ["local"]
     

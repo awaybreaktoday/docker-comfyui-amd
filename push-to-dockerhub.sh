@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ComfyUI AMD ROCm Docker Hub Push Script
-# Replace YOUR_DOCKERHUB_USERNAME with your actual Docker Hub username
+# Reuses the locally built image and pushes to Docker Hub
 
 # Load .env.local if it exists
 if [ -f .env.local ]; then
@@ -10,10 +10,11 @@ if [ -f .env.local ]; then
     set +a
 fi
 
-# Configuration - EDIT THESE VARIABLES
-DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-YOUR_DOCKERHUB_USERNAME}"  # Replace with your Docker Hub username
+# Configuration
+DOCKERHUB_USERNAME="${1:-${DOCKERHUB_USERNAME:-}}"
 IMAGE_NAME="comfyui-rocm"
-VERSION="${IMAGE_VERSION:-latest}"
+VERSION="${2:-${IMAGE_VERSION:-latest}}"
+LOCAL_IMAGE="${LOCAL_IMAGE:-comfyui-rocm:local}"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -26,9 +27,9 @@ echo -e "${BLUE}🐳 ComfyUI AMD ROCm Docker Hub Push Script${NC}"
 echo "=================================================="
 
 # Check if username is set
-if [ "$DOCKERHUB_USERNAME" = "YOUR_DOCKERHUB_USERNAME" ]; then
-    echo -e "${RED}❌ Error: Please edit this script and set your Docker Hub username${NC}"
-    echo "Edit the DOCKERHUB_USERNAME variable at the top of this script"
+if [ -z "$DOCKERHUB_USERNAME" ]; then
+    echo -e "${RED}❌ Error: Provide your Docker Hub username as the first argument or set DOCKERHUB_USERNAME${NC}"
+    echo "Usage: ./push-to-dockerhub.sh <dockerhub-username> [tag]"
     exit 1
 fi
 
@@ -47,20 +48,18 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Build the image
-echo -e "${BLUE}🏗️  Building Docker image...${NC}"
-docker build -t "$FULL_IMAGE_NAME:$VERSION" .
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Error: Docker build failed${NC}"
+# Ensure local image exists
+if ! docker image inspect "$LOCAL_IMAGE" >/dev/null 2>&1; then
+    echo -e "${RED}❌ Error: Local image $LOCAL_IMAGE not found. Run ./build-local.sh first.${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Build completed successfully${NC}"
+echo -e "${BLUE}🏷️  Tagging local image $LOCAL_IMAGE -> $FULL_IMAGE_NAME:$VERSION${NC}"
+docker tag "$LOCAL_IMAGE" "$FULL_IMAGE_NAME:$VERSION"
 
 # Tag with additional version if specified
-if [ -n "$2" ]; then
-    VERSION_TAG="$2"
+if [ -n "$3" ]; then
+    VERSION_TAG="$3"
     echo -e "${BLUE}🏷️  Tagging with version: $VERSION_TAG${NC}"
     docker tag "$FULL_IMAGE_NAME:$VERSION" "$FULL_IMAGE_NAME:$VERSION_TAG"
 fi
@@ -89,7 +88,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Push version tag if it exists
-if [ -n "$2" ]; then
+if [ -n "$VERSION_TAG" ]; then
     echo -e "${BLUE}📤 Pushing version tag: $VERSION_TAG${NC}"
     docker push "$FULL_IMAGE_NAME:$VERSION_TAG"
 fi

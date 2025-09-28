@@ -23,7 +23,7 @@ mkdir -p output input temp workflows
 
 cd custom_nodes
 
-# Function to download and extract GitHub repos
+# Function to clone or update GitHub repos with shallow clones
 download_extension() {
     local repo_url=$1
     local dir_name=$2
@@ -31,27 +31,24 @@ download_extension() {
 
     echo -e "${YELLOW}⬇️  Installing: $description${NC}"
 
-    if [ -d "$dir_name" ]; then
-        echo -e "${YELLOW}   Already exists, updating...${NC}"
-        cd "$dir_name"
-        if [ -d ".git" ]; then
-            git pull
-        else
-            cd ..
-            rm -rf "$dir_name"
-            wget -q "$repo_url/archive/refs/heads/main.zip" -O "${dir_name}.zip"
-            unzip -q "${dir_name}.zip"
-            mv "${dir_name}-main" "$dir_name" 2>/dev/null || mv "${dir_name}-master" "$dir_name" 2>/dev/null || true
-            rm "${dir_name}.zip"
+    if [ -d "$dir_name/.git" ]; then
+        if git -C "$dir_name" pull --ff-only; then
+            echo -e "${GREEN}   ✅ Updated existing clone${NC}"
+            return
         fi
-        cd ..
-    else
-        wget -q "$repo_url/archive/refs/heads/main.zip" -O "${dir_name}.zip"
-        unzip -q "${dir_name}.zip"
-        mv "${dir_name}-main" "$dir_name" 2>/dev/null || mv "${dir_name}-master" "$dir_name" 2>/dev/null || true
-        rm "${dir_name}.zip"
+        echo -e "${YELLOW}   ⚠️ Update failed, recloning...${NC}"
+        rm -rf "$dir_name"
+    elif [ -d "$dir_name" ]; then
+        echo -e "${YELLOW}   Directory exists without git metadata. Removing stale copy...${NC}"
+        rm -rf "$dir_name"
     fi
-    echo -e "${GREEN}   ✅ $description installed${NC}"
+
+    if git clone --depth 1 "$repo_url" "$dir_name"; then
+        echo -e "${GREEN}   ✅ $description installed${NC}"
+    else
+        echo -e "${RED}   ❌ Failed to clone $description${NC}"
+        return 1
+    fi
 }
 
 # Essential Extensions
@@ -112,7 +109,7 @@ EOF
 
 echo -e "${GREEN}✅ Custom nodes downloaded successfully!${NC}"
 echo -e "${BLUE}📋 Next steps:${NC}"
-echo "1. Run: docker-compose restart"
+echo "1. Run: docker compose restart"
 echo "2. The container will automatically install Python dependencies"
 echo "3. Access ComfyUI at http://localhost:8188"
 echo "4. Install models using: ./download-models.sh"

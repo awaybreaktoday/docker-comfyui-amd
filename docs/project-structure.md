@@ -5,17 +5,18 @@ This document shows the cleaned up, final project structure after removing redun
 ## 📁 Current File Structure
 
 ```
-docker-comfyui-amd/
+docker-comfyui-rocm/
 ├── 📋 Documentation
 │   ├── README.md                    # Main documentation (ROCm 6.4.4)
-│   ├── MODELS.md                    # Model setup guide
-│   ├── GITHUB_SECRETS.md            # GitHub secrets configuration
-│   └── PROJECT_STRUCTURE.md         # This file
+│   ├── models.md                    # Model setup guide
+│   ├── github-secrets.md            # GitHub metadata configuration
+│   ├── building-and-publishing.md   # Local build workflow & publishing
+│   └── project-structure.md         # This file
 │
 ├── 🐳 Docker Configuration
 │   ├── Dockerfile                   # Standard build (local use)
 │   ├── Dockerfile.cloudbuild        # Optimized for cloud builds
-│   ├── docker-compose.yml           # Standard compose file
+│   ├── docker-compose.yml           # Standard compose file (local image aware)
 │   └── docker-compose.multi.yml     # Multi-source deployment options
 │
 ├── 🔧 Build Scripts
@@ -24,7 +25,7 @@ docker-comfyui-amd/
 │   ├── logs.sh                      # View logs
 │   ├── update.sh                    # Update container
 │   ├── build-local.sh               # Local build with custom metadata
-│   └── build-multiarch.sh           # Multi-architecture builds
+│   └── build-multiarch.sh           # Buildx helper (linux/amd64 default)
 │
 ├── 🌐 Docker Hub Scripts
 │   ├── push-to-dockerhub.sh         # Detailed push with error handling
@@ -34,8 +35,8 @@ docker-comfyui-amd/
 ├── ⚙️ Configuration Files
 │   ├── .env.local.example           # Local build environment template
 │   ├── .gitignore                   # Git ignore patterns
-│   └── .github/workflows/           # GitHub Actions automation
-│       └── docker-build.yml         # Automated Docker builds
+│   └── .github/workflows/           # GitHub Actions automation (metadata only)
+│       └── docker-build.yml         # Publishes metadata/artifacts
 │
 └── 📁 Data Directories
     ├── models/                      # AI models
@@ -77,9 +78,9 @@ source .env.local
 ### **Multi-Platform Deployment**
 ```bash
 # Use different deployment sources
-DOCKERHUB_USERNAME=user docker-compose -f docker-compose.multi.yml --profile dockerhub up
-GITHUB_USERNAME=user docker-compose -f docker-compose.multi.yml --profile ghcr up
-docker-compose -f docker-compose.multi.yml --profile local up
+DOCKERHUB_USERNAME=user docker compose -f docker-compose.multi.yml --profile dockerhub up
+GITHUB_USERNAME=user docker compose -f docker-compose.multi.yml --profile ghcr up
+docker compose -f docker-compose.multi.yml --profile local up
 ```
 
 ## 📊 File Categories
